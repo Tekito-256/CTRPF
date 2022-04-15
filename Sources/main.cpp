@@ -1,6 +1,7 @@
 #include "3ds.h"
 #include "csvc.h"
 #include "CTRPluginFramework.hpp"
+#include "tools_config.h"
 
 #include <vector>
 
@@ -52,11 +53,23 @@ namespace CTRPluginFramework
 exit:
         svcCloseHandle(processHandle);
     }
+	
+	void change_tools_name() {
+      u32* tool_items_ptr = (u32*)(_ZN18CTRPluginFramework15PluginMenuTools8InitMenuEv + TOOL_ITEMS_OFFSET);
+
+      for( auto& menu : tool_menus ) {
+        for( auto& item : menu ) {
+          *tool_items_ptr = *(u32*)&item.name;
+          tool_items_ptr += item.offset;
+        }
+      }
+    }
 
     // This function is called before main and before the game starts
     // Useful to do code edits safely
     void    PatchProcess(FwkSettings &settings)
     {
+		change_tools_name();
         ToggleTouchscreenForceOn();
     }
 
