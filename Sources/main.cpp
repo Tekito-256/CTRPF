@@ -4,6 +4,14 @@
 
 #include <vector>
 
+extern "C" 
+{
+    void _ZN18CTRPluginFramework16PluginMenuSearch18_cancelBtn_OnClickEv(void *search);
+    void _ZN18CTRPluginFramework16PluginMenuSearchclERSt6vectorINS_5EventESaIS2_EERNS_4TimeE();
+    bool _ZN18CTRPluginFramework6ButtonclEv(void *button);
+    void _ZN18CTRPluginFramework16PluginMenuSearch13_RenderBottomEv(void *search);
+}
+
 namespace CTRPluginFramework
 {
     // This patch the NFC disabling the touchscreen when scanning an amiibo, which prevents ctrpf to be used
@@ -52,11 +60,35 @@ namespace CTRPluginFramework
 exit:
         svcCloseHandle(processHandle);
     }
+	
+	u32 CreateBranch(u32 from, u32 to, bool link)
+	{
+		u32 result = link ? 0xEB000000 : 0xEA000000;
+		result |= (((((to - from) * 4) / 0x10) - 2) & 0xFFFFFF);
+		return result;
+	}
+	
+	void EnableSearchCancelHook(void *search)
+	{
+		void *cancelBtn = (void *)((u32)search + 0x280);
+
+		_ZN18CTRPluginFramework16PluginMenuSearch13_RenderBottomEv(search);
+
+		if(_ZN18CTRPluginFramework6ButtonclEv(cancelBtn))
+			_ZN18CTRPluginFramework16PluginMenuSearch18_cancelBtn_OnClickEv(search);
+	}
+	  
+	void EnableSearchCancel()
+	{
+		u32 *addr = (u32 *)((u32)_ZN18CTRPluginFramework16PluginMenuSearchclERSt6vectorINS_5EventESaIS2_EERNS_4TimeE + 0xD4);
+		*addr = CreateBranch((u32)addr, (u32)EnableSearchCancelHook, true);
+	}
 
     // This function is called before main and before the game starts
     // Useful to do code edits safely
     void    PatchProcess(FwkSettings &settings)
     {
+		EnableSearchCancel();
         ToggleTouchscreenForceOn();
     }
 
